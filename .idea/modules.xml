@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/googleToolsDemo.iml" filepath="$PROJECT_DIR$/googleToolsDemo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/guiceDemo/guiceDemo.iml" filepath="$PROJECT_DIR$/guiceDemo/guiceDemo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/luceneDemo/luceneDemo.iml" filepath="$PROJECT_DIR$/luceneDemo/luceneDemo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/springSecurityDemo/springSecurityDemo.iml" filepath="$PROJECT_DIR$/springSecurityDemo/springSecurityDemo.iml" />
+    </modules>
+  </component>
+</project>
