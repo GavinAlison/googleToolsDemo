@@ -1,24 +1,24 @@
 package com.alison;
 
 public class Employee {
-    private int id;
+    private String id;
     private String username;
-    private double salary;
+    private String salary;
 
-    public Employee(int id, String username, double salary) {
+    public Employee() {
+    }
+
+    public Employee(String id, String username, String salary) {
         this.id = id;
         this.username = username;
         this.salary = salary;
     }
 
-    public Employee() {
-    }
-
-    public int getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -30,20 +30,11 @@ public class Employee {
         this.username = username;
     }
 
-    public double getSalary() {
+    public String getSalary() {
         return salary;
     }
 
-    public void setSalary(double salary) {
+    public void setSalary(String salary) {
         this.salary = salary;
-    }
-
-    @Override
-    public String toString() {
-        return "Employee{" +
-                "id=" + id +
-                ", username='" + username + '\'' +
-                ", salary=" + salary +
-                '}';
     }
 }

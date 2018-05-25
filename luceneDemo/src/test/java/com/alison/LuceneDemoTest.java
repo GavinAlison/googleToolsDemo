@@ -1,23 +1,28 @@
 package com.alison;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.Sort;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Version;
 import org.junit.Test;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,6 +36,7 @@ public class LuceneDemoTest {
 
     /**
      * 建立索引
+     * 测试结果： 存储索引成功
      *
      * @throws Exception
      */
@@ -58,6 +64,12 @@ public class LuceneDemoTest {
         singleton.buildIndexer(analyzer, directory, items);
     }
 
+    /**
+     * 搜索索引不成功，提示NullPointerExcetion
+     * 出错地址： searchIndex
+     *
+     * @throws Exception
+     */
     @Test
     public void search() throws Exception {
         LuceneDemoTest singleton2 = new LuceneDemoTest();
@@ -72,6 +84,37 @@ public class LuceneDemoTest {
         List<Item> results = singleton2.searchIndex(analyzer, directory, "中国");
         for (Item item : results) {
             System.out.printf("-----------" + item.toString());
+        }
+    }
+
+    /**
+     * 测试存储索引与读取keyword
+     * 结果：为报错，但是取不出数据
+     *
+     * @throws Exception
+     */
+    @Test
+    public void createAndSearch() throws Exception {
+        LuceneDemoTest singleton = new LuceneDemoTest();
+        Analyzer analyzer = new StandardAnalyzer();
+        List<Item> items = new ArrayList<Item>();
+        items.add(new Item("1", "first", "This is the text to be greatly indexed."));
+        items.add(new Item("2", "second", "This is great"));
+        items.add(new Item("3", "third", "I love apple and pear. "));
+        items.add(new Item("4", "four", "我是中国人"));
+        items.add(new Item("5", "five", "我叫何瑞"));
+
+        // 索引存到内存中的目录
+        //Directory directory = new RAMDirectory();
+        // 索引存储到硬盘
+        File file = new File("E:/lucene");
+        Directory directory = FSDirectory.open(file.toPath());
+        singleton.buildIndexer(analyzer, directory, items);
+        List<Item> result = singleton.searchIndex(analyzer, directory, "中国");
+
+        System.out.printf("----------------");
+        for (Item item : result) {
+            System.out.println(item.toString());
         }
     }
 
@@ -179,5 +222,142 @@ public class LuceneDemoTest {
             return result;
         }
     }
+
+    /**
+     * javaBean
+     *
+     * @throws Exception
+     */
+    @Test
+    public void add() throws Exception {
+        Item item = new Item();
+        item.setId("1");
+        item.setTitle("Lucene全文检索");
+        item.setContent("Lucene是apache软件基金会4 jakarta项目组的一个子项目，是一个开放源代码");
+        final Path path = Paths.get("E:\\lucene\\1\\");
+        Directory directory = FSDirectory.open(path);
+        Analyzer analyzer = new StandardAnalyzer();
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
+        indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
+        IndexWriter indexWriter = new IndexWriter(directory, indexWriterConfig);
+        Document document = new Document();
+        document.add(new TextField("id", item.getId(), Field.Store.YES));
+        document.add(new TextField("title", item.getTitle(), Field.Store.YES));
+        document.add(new TextField("content", item.getContent(), Field.Store.YES));
+        indexWriter.addDocument(document);
+        indexWriter.close();
+    }
+
+    /**
+     * 添加文件
+     *
+     * @throws Exception
+     */
+    @Test
+    public void addFile() throws Exception {
+        final Path path = Paths.get("E:/lucene/2");
+
+        Directory directory = FSDirectory.open(path);
+        Analyzer analyzer = new StandardAnalyzer();
+
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
+        indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
+
+        IndexWriter indexWriter = new IndexWriter(directory, indexWriterConfig);
+        BufferedReader bufferedReader = new BufferedReader(new FileReader(new File("E:/lucene/2018.log")));
+        String content = "";
+        while ((content = bufferedReader.readLine()) != null) {
+            System.out.println(content);
+            Document document = new Document();
+            document.add(new TextField("logs", content, Field.Store.YES));
+            indexWriter.addDocument(document);
+        }
+        indexWriter.close();
+    }
+
+
+    /**
+     * search查询
+     */
+    @Test
+    public void searchFiles() throws Exception {
+        String queryString = "lucene";
+        //多条件
+//        Query q = MultiFieldQueryParser.parse(new String[]{},new String[]{},new StandardAnalyzer());
+
+        final Path path = Paths.get("E:/lucene/1");
+        Directory directory = FSDirectory.open(path);
+        Analyzer analyzer = new StandardAnalyzer();
+
+        IndexReader indexReader = DirectoryReader.open(directory);
+        IndexSearcher indexSearcher = new IndexSearcher(indexReader);
+
+        //单条件
+        QueryParser queryParser = new QueryParser("lucene", analyzer);
+//        QueryParser queryParser = new QueryParser("logs", analyzer);
+        Query query = queryParser.parse(queryString);
+
+        TopDocs topDocs = indexSearcher.search(query, 10);
+
+        long conut = topDocs.totalHits;
+        System.out.println("检索总条数：" + conut);
+        ScoreDoc[] scoreDocs = topDocs.scoreDocs;
+        for (ScoreDoc scoreDoc : scoreDocs) {
+            Document document = indexSearcher.doc(scoreDoc.doc);
+            System.out.println("相关度：" + scoreDoc.score + "-----time:" + document.get("time"));
+            System.out.println(document.get("lucene"));
+        }
+    }
+
+    @Test
+    public void createIndexDB() throws Exception {
+        //把数据填充到JavaBean对象中
+        User user = new User("1", "钟福成", "未来的程序员");
+        //创建Document对象【导入的是Lucene包下的Document对象】
+        Document document = new Document();
+        //将JavaBean对象所有的属性值，均放到Document对象中去，属性名可以和JavaBean相同或不同
+        /**
+         * 向Document对象加入一个字段
+         * 参数一：字段的关键字
+         * 参数二：字符的值
+         * 参数三：是否要存储到原始记录表中
+         *      YES表示是
+         *      NO表示否
+         * 参数四：是否需要将存储的数据拆分到词汇表中
+         *      ANALYZED表示拆分
+         *      NOT_ANALYZED表示不拆分
+         *
+         * */
+        document.add(new Field("id", user.getId(), Field.Store.YES, Field.Index.ANALYZED));
+        document.add(new Field("userName", user.getUserName(), Field.Store.YES, Field.Index.ANALYZED));
+        document.add(new Field("sal", user.getSal(), Field.Store.YES, Field.Index.ANALYZED));
+
+        //创建IndexWriter对象
+        //目录指定为E:/createIndexDB
+        Directory directory = FSDirectory.open(new File("E:/createIndexDB"));
+
+        //使用标准的分词算法对原始记录表进行拆分
+        Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_30);
+
+        //LIMITED默认是1W个
+        IndexWriter.MaxFieldLength maxFieldLength = IndexWriter.MaxFieldLength.LIMITED;
+        /**
+         * IndexWriter将我们的document对象写到硬盘中
+         *
+         * 参数一：Directory d,写到硬盘中的目录路径是什么
+         * 参数二：Analyzer a, 以何种算法来对document中的原始记录表数据进行拆分成词汇表
+         * 参数三：MaxFieldLength mfl 最多将文本拆分出多少个词汇
+         *
+         * */
+        IndexWriter indexWriter = new IndexWriter(directory, analyzer, maxFieldLength);
+
+        //将Document对象通过IndexWriter对象写入索引库中
+        indexWriter.addDocument(document);
+
+        //关闭IndexWriter对象
+        indexWriter.close();
+
+    }
+
 
 }
