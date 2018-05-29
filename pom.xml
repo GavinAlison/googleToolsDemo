@@ -13,6 +13,8 @@
         <module>luceneDemo</module>
         <module>springSecurityDemo</module>
         <module>springSecurityDemo</module>
+        <module>groovyDemo</module>
+        <module>springbootdemo</module>
     </modules>
 
 
